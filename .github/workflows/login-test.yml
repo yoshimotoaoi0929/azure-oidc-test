@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -22,6 +24,11 @@ jobs:
       - name: Show Azure Account
         run: |
           az account show
+
+      - name: Show Signed In Identity
+        run: |
+          echo "CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}"
+          az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Show Resource Groups
         run: |

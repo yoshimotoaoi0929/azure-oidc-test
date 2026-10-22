@@ -1,4 +1,4 @@
-name: Graph Application Permission Test
+name: Delegated Permission Test
 
 on:
   workflow_dispatch:
@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -19,55 +20,14 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
-      - name: Get Graph Token
-        shell: pwsh
-        run: |
-          $token = az account get-access-token `
-            --resource-type ms-graph `
-            --query accessToken `
-            -o tsv
-
-          Write-Host "Token acquired"
-
-      - name: Show Graph Token Claims
-        shell: pwsh
-        run: |
-          $token = az account get-access-token `
-            --resource-type ms-graph `
-            --query accessToken `
-            -o tsv
-
-          $payload = $token.Split('.')[1]
-
-          while ($payload.Length % 4) {
-            $payload += "="
-          }
-
-          $json = [System.Text.Encoding]::UTF8.GetString(
-            [System.Convert]::FromBase64String(
-              $payload.Replace('-', '+').Replace('_', '/')
-            )
-          )
-
-          $obj = $json | ConvertFrom-Json
-
-          Write-Host "=== ROLES ==="
-          $obj.roles
-
-          Write-Host "=== SCP ==="
-          $obj.scp
-
-          Write-Host "=== ALL CLAIMS ==="
-          $json
-
       - name: Show Identity
         shell: pwsh
         run: |
           az ad sp show `
             --id ${{ secrets.AZURE_CLIENT_ID }} `
-            --query "{displayName:displayName,appId:appId}"
+            --query "{displayName:displayName}"
 
-      - name: Call Graph Users
+      - name: Get Graph Token
         shell: pwsh
         run: |
           $token = az account get-access-token `
@@ -81,6 +41,5 @@ jobs:
 
           Invoke-RestMethod `
             -Method GET `
-            -Headers $headers `
-            -Uri 'https://graph.microsoft.com/v1.0/users?$top=1' |
-          ConvertTo-Json -Depth 5
+            -Uri "https://graph.microsoft.com/v1.0/me" `
+            -Headers $headers

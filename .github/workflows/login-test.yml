@@ -1,4 +1,28 @@
-      - name: Check Token Claims
+name: Graph Application Permission Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - name: Get Graph Token
         shell: pwsh
         run: |
           $token = az account get-access-token `
@@ -6,14 +30,18 @@
             --query accessToken `
             -o tsv
 
-          $payload = $token.Split(".")[1]
+          Write-Host "Token acquired"
 
-          while($payload.Length % 4) {
-            $payload += "="
-          }
+      - name: Call Graph Users
+        shell: pwsh
+        run: |
+          $token = az account get-access-token `
+            --resource-type ms-graph `
+            --query accessToken `
+            -o tsv
 
-          [System.Text.Encoding]::UTF8.GetString(
-            [System.Convert]::FromBase64String(
-              $payload.Replace("-","+").Replace("_","/")
-            )
-          )
+          $result = Invoke-RestMethod `
+            -Headers @{Authorization = "Bearer $token"} `
+            -Uri "https://graph.microsoft.com/v1.0/users?`$top=1"
+
+          $result | ConvertTo-Json -Depth 5

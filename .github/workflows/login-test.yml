@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - uses: actions/checkout@v4
 
       - name: Azure Login
@@ -32,6 +31,28 @@ jobs:
 
           Write-Host "Token acquired"
 
+      - name: Show Graph Token Claims
+        shell: pwsh
+        run: |
+          $token = az account get-access-token `
+            --resource-type ms-graph `
+            --query accessToken `
+            -o tsv
+
+          $payload = $token.Split('.')[1]
+
+          while ($payload.Length % 4) {
+            $payload += "="
+          }
+
+          $json = [System.Text.Encoding]::UTF8.GetString(
+            [System.Convert]::FromBase64String(
+              $payload.Replace('-','+').Replace('_','/')
+            )
+          )
+
+          $json
+
       - name: Call Graph Users
         shell: pwsh
         run: |
@@ -41,7 +62,4 @@ jobs:
             -o tsv
 
           $result = Invoke-RestMethod `
-            -Headers @{Authorization = "Bearer $token"} `
-            -Uri "https://graph.microsoft.com/v1.0/users?`$top=1"
-
-          $result | ConvertTo-Json -Depth 5
+            -Headers @{Authorization = "Bearer $token"} 

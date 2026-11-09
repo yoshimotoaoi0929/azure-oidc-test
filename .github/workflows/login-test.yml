@@ -1,4 +1,4 @@
-name: Application Permission Test
+name: OIDC Test
 
 on:
   workflow_dispatch:
@@ -19,21 +19,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
-      - name: Get Graph Token
-        shell: pwsh
+      - name: Show Identity
         run: |
-          $token = az account get-access-token `
-            --resource-type ms-graph `
-            --query accessToken -o tsv
-
-          Write-Host "Token acquired successfully."
-
-          $headers = @{
-            Authorization = "Bearer $token"
-          }
-
-          $result = Invoke-RestMethod `
-            -Headers $headers `
-            -Uri "https://graph.microsoft.com/v1.0/users?`$top=1"
-
-          $result.value | ConvertTo-Json -Depth 5
+          az account show

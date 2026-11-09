@@ -1,4 +1,4 @@
-name: Delegated Permission Test
+name: Application Permission Test
 
 on:
   workflow_dispatch:
@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -20,26 +19,21 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
-      - name: Show Identity
-        shell: pwsh
-        run: |
-          az ad sp show `
-            --id ${{ secrets.AZURE_CLIENT_ID }} `
-            --query "{displayName:displayName}"
-
       - name: Get Graph Token
         shell: pwsh
         run: |
           $token = az account get-access-token `
             --resource-type ms-graph `
-            --query accessToken `
-            -o tsv
+            --query accessToken -o tsv
+
+          Write-Host "Token acquired successfully."
 
           $headers = @{
             Authorization = "Bearer $token"
           }
 
-          Invoke-RestMethod `
-            -Method GET `
-            -Uri "https://graph.microsoft.com/v1.0/me" `
-            -Headers $headers
+          $result = Invoke-RestMethod `
+            -Headers $headers `
+            -Uri "https://graph.microsoft.com/v1.0/users?`$top=1"
+
+          $result.value | ConvertTo-Json -Depth 5
